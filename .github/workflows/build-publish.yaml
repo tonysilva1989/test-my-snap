@@ -56,10 +56,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Promote edge to candidate
-        uses: snapcrafters/ci/release-to-candidate@main
+        uses: snapcrafters/ci/release-to-candidate@v1
         with:
           repo-token: ${{ secrets.SNAP_STORE_LOGIN }}
-          token: ${{ secrets.SNAP_STORE_LOGIN }}
           store-token: ${{ secrets.SNAP_STORE_LOGIN }}
           channel: candidate
           snapcraft-channel: edge
@@ -69,9 +68,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Promote candidate to stable
-        uses: snapcrafters/ci/promote-to-stable@main
+        uses: snapcrafters/ci/promote-to-stable@v1
         with:
-          token: ${{ secrets.SNAP_STORE_LOGIN }}
           store-token: ${{ secrets.SNAP_STORE_LOGIN }}
           channel: stable
           snapcraft-channel: candidate
