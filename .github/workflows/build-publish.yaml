@@ -58,8 +58,9 @@ jobs:
       - name: Promote edge to candidate
         uses: snapcrafters/ci/release-to-candidate@main
         with:
-          snap: ${{ steps.build-snap.outputs.snap }}
           store-token: ${{ secrets.SNAP_STORE_LOGIN }}
+          channel: candidate
+          snapcraft-channel: edge
 
   promote-to-stable:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -68,5 +69,6 @@ jobs:
       - name: Promote candidate to stable
         uses: snapcrafters/ci/promote-to-stable@main
         with:
-          snap: ${{ steps.build-snap.outputs.snap }}
           store-token: ${{ secrets.SNAP_STORE_LOGIN }}
+          channel: stable
+          snapcraft-channel: candidate
