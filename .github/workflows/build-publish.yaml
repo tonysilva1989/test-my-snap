@@ -59,16 +59,17 @@ jobs:
         uses: snapcrafters/ci/release-to-candidate@main
         with:
           repo-token: ${{ secrets.SNAP_STORE_LOGIN }}
+          store-token: ${{ secrets.SNAP_STORE_LOGIN }}
           channel: candidate
           snapcraft-channel: edge
 
-  promote-to-stable:
+  release-to-stable:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - name: Promote candidate to stable
         uses: snapcrafters/ci/promote-to-stable@main
         with:
-          repo-token: ${{ secrets.SNAP_STORE_LOGIN }}
+          store-token: ${{ secrets.SNAP_STORE_LOGIN }}
           channel: stable
           snapcraft-channel: candidate
