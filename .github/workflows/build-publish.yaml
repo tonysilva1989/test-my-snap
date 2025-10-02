@@ -59,16 +59,22 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            snap/snapcraft.yaml
       - name: Install Snapcraft
         run: |
+          echo "DEBUG-------------------------------------"
+          ls -la .
+          echo "------------------------------------------"
+          ls -la snap
+          echo "------------------------------------------"
           sudo snap install snapcraft --classic --channel=stable
 
       - name: Get snap name from snapcraft.yaml
         id: snap-name
         run: |
-          echo "--------------------------- $SNAP_FILE ---------------------------"
-          echo "--------------------------- $SNAP_NAME ---------------------------"
           NAME=$(grep '^name:' snap/snapcraft.yaml | awk '{print $2}')
           echo "snap_name=$NAME" >> $GITHUB_OUTPUT
 
