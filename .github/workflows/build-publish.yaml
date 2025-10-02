@@ -52,7 +52,7 @@ jobs:
   #         snap: ${{ steps.build-snap.outputs.snap }}
   #         release: edge
 
-  promote-to-candidate:
+  promote-snap:
     # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     #needs: build-and-publish
@@ -65,52 +65,28 @@ jobs:
       - name: Install Snapcraft
         run: |
           sudo snap install snapcraft --classic --channel=stable
-      - name: Promote edge to candidate
+      - name: Determine promotion channel
+        id: set-channel
         run: |
-          REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/edge/{print $1; exit}')
-          echo "Promoting revision $REV of ${{ steps.snapcraft-yaml.outputs.snap-name }} to candidate"
-          snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} $REV candidate
+          if [[ "${{ github.ref }}" == refs/heads/main ]]; then
+            # Promote from edge to candidate on pushes to main branch through a PR
+            echo "from_channel=edge" >> $GITHUB_OUTPUT
+            echo "to_channel=candidate" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Promote from candidate to stable on version tags
+            echo "from_channel=candidate" >> $GITHUB_OUTPUT
+            echo "to_channel=stable" >> $GITHUB_OUTPUT
+          else
+            echo "from_channel=unknown" >> $GITHUB_OUTPUT
+            echo "to_channel=unknown" >> $GITHUB_OUTPUT
+      - name: Get snap revision
+        id: get-revision
+        run: | 
+          REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/${{ steps.set-channel.outputs.from_channel }}/{print $1; exit}')
+          echo "revision=$REV" >> $GITHUB_ENV
+      - name: Promote edge to candidate
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} ${{ steps.get-revision.outputs.revision }} ${{ steps.set-channel.outputs.to_channel }}
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-
-    # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    # runs-on: ubuntu-latest
-    # needs: build-and-publish
-    # steps:
-    #   - name: Checkout repository
-    #     uses: actions/checkout@v4
-
-    #   - name: Install Snapcraft CLI
-    #     run: |
-    #       sudo snap install --channel stable --classic snapcraft
-    #   - name: Get snap name from snapcraft.yaml
-    #     id: snap-name
-    #   - name: Promote edge to candidate
-    #     run: |
-    #       echo "--------------------- $SNAP_NAME ---------------------"
-    #       REV=$(snapcraft list-revisions ${} --channel=edge | awk 'NR==2 {print $1}')
-    #       snapcraft release ${{ steps.snap-name.outputs.snap_name }} $REV candidate
-    #     env:
-    #       SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-
-  # release-to-stable:
-  #   if: startsWith(github.ref, 'refs/tags/v')
-  #   runs-on: ubuntu-latest
-  #   needs: build-and-publish
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #     - name: Install Snapcraft CLI
-  #       run: |
-  #         sudo snap install --channel stable --classic snapcraft
-  #     - name: Get snap name from snapcraft.yaml
-  #       id: snap-name
-  #       run: |
-  #         NAME=$(grep '^name:' snap/snapcraft.yaml | awk '{print $2}')
-  #         echo "snap_name=$NAME" >> $GITHUB_OUTPUT
-  #     - name: release to stable
-  #       run: |
-  #         REV=$(snapcraft list-revisions ${{ steps.snap-name.outputs.snap_name }} --channel=edge | awk 'NR==2 {print $1}')
-  #         snapcraft release ${{ steps.snap-name.outputs.snap_name }} $REV stable
-  #       env:
-  #         SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
