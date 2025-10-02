@@ -79,6 +79,7 @@ jobs:
           else
             echo "from_channel=unknown" >> $GITHUB_OUTPUT
             echo "to_channel=unknown" >> $GITHUB_OUTPUT
+          fi
       - name: Get snap revision
         id: get-revision
         run: | 
