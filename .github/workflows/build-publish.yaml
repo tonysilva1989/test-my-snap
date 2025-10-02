@@ -68,11 +68,11 @@ jobs:
       - name: Determine promotion channel
         id: set-channel
         run: |
-          if [[ "${{ github.ref }}" == refs/heads/main ]]; then
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             # Promote from edge to candidate on pushes to main branch through a PR
             echo "from_channel=edge" >> $GITHUB_OUTPUT
             echo "to_channel=candidate" >> $GITHUB_OUTPUT
-          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+          elif [[ "${{ github.ref }}" == "refs/tags/v*" ]]; then
             # Promote from candidate to stable on version tags
             echo "from_channel=candidate" >> $GITHUB_OUTPUT
             echo "to_channel=stable" >> $GITHUB_OUTPUT
