@@ -67,6 +67,8 @@ jobs:
       - name: Get snap name from snapcraft.yaml
         id: snap-name
         run: |
+          echo "--------------------------- $SNAP_FILE ---------------------------"
+          echo "--------------------------- $SNAP_NAME ---------------------------"
           NAME=$(grep '^name:' snap/snapcraft.yaml | awk '{print $2}')
           echo "snap_name=$NAME" >> $GITHUB_OUTPUT
 
