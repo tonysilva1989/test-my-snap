@@ -3,7 +3,7 @@ name: Snap Build
 on:
  push:
    branches:
-     - novos-testes
+     - teste10
 
 # on:
 #   pull_request: # Triggers the workflow on pull requests targeting the main branch
