@@ -61,6 +61,7 @@ jobs:
         with:
           architecture: amd64
           store-token: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
           channel: candidate
     # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     # runs-on: ubuntu-latest
