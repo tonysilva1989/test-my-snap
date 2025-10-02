@@ -55,7 +55,7 @@ jobs:
   promote-to-candidate:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs: build-and-publish
+    #needs: build-and-publish
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
