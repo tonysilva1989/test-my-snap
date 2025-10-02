@@ -73,3 +73,5 @@ jobs:
           store-token: ${{ secrets.SNAP_STORE_LOGIN }}
           channel: stable
           snapcraft-channel: candidate
+
+          
