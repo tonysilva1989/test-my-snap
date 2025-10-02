@@ -64,17 +64,7 @@ jobs:
         uses: snapcrafters/ci/parse-snapcraft-yaml@main
       - name: Install Snapcraft
         run: |
-          echo "DEBUG-------------------------------------"
-          echo ${{ steps.snapcraft-yaml.outputs.snap-name }}
-          echo "------------------------------------------"
           sudo snap install snapcraft --classic --channel=stable
-
-      - name: Get snap name from snapcraft.yaml
-        id: snap-name
-        run: |
-          NAME=$(grep '^name:' snap/snapcraft.yaml | awk '{print $2}')
-          echo "snap_name=$NAME" >> $GITHUB_OUTPUT
-
       - name: Promote edge to candidate
         run: |
           REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/edge/{print $1; exit}')
