@@ -1,18 +1,18 @@
 name: Snap Build
 
-on:
- push:
-   branches:
-     - teste10
-
 # on:
-#   pull_request: # Triggers the workflow on pull requests targeting the main branch
-#     types: [opened, synchronize, reopened]
-#   push:
-#     branches:
-#       - main # Whenever a commit is pushed to main
-#     tags:
-#       - 'v*' # Whenever a new version tag is pushed
+#  push:
+#    branches:
+#      - teste10
+
+on:
+  pull_request: # Triggers the workflow on pull requests targeting the main branch
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main # Whenever a commit is pushed to main
+    tags:
+      - 'v*' # Whenever a new version tag is pushed
 
 jobs:
   # build-and-publish:
@@ -86,6 +86,7 @@ jobs:
           REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/${{ steps.set-channel.outputs.from_channel }}/{print $1; exit}')
           echo "revision=$REV" >> $GITHUB_ENV
       - name: Promote edge to candidate
+        id: 
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} ${{ steps.get-revision.outputs.revision }} ${{ steps.set-channel.outputs.to_channel }}
