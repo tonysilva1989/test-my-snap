@@ -53,16 +53,33 @@ jobs:
   #         release: edge
 
   promote-to-candidate:
-    name: 🚢 Release to latest/candidate
-    runs-on: ubuntu-latest
-    steps:
-      - name: 🚢 Release to latest/candidate
-        uses: snapcrafters/ci/release-to-candidate@main
-        with:
-          architecture: amd64
-          store-token: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          channel: candidate
+
+promote-to-candidate:
+  if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  runs-on: ubuntu-latest
+  needs: build-and-publish
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install Snapcraft
+      run: |
+        sudo snap install snapcraft --classic --channel=stable
+
+    - name: Get snap name from snapcraft.yaml
+      id: snap-name
+      run: |
+        NAME=$(grep '^name:' snap/snapcraft.yaml | awk '{print $2}')
+        echo "snap_name=$NAME" >> $GITHUB_OUTPUT
+
+    - name: Promote edge to candidate
+      run: |
+        REV=$(snapcraft list-revisions ${{ steps.snap-name.outputs.snap_name }} | awk '/edge/{print $1; exit}')
+        echo "Promoting revision $REV of ${{ steps.snap-name.outputs.snap_name }} to candidate"
+        snapcraft release ${{ steps.snap-name.outputs.snap_name }} $REV candidate
+      env:
+        SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+
     # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     # runs-on: ubuntu-latest
     # needs: build-and-publish
