@@ -59,16 +59,13 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          sparse-checkout: |
-            snap/snapcraft.yaml
+      - name: Find and parse snapcraft.yaml
+        id: snapcraft-yaml
+        uses: snapcrafters/ci/parse-snapcraft-yaml@main
       - name: Install Snapcraft
         run: |
           echo "DEBUG-------------------------------------"
-          ls -la .
-          echo "------------------------------------------"
-          ls -la snap
+          echo ${{ steps.snapcraft-yaml.outputs.snap-name }}
           echo "------------------------------------------"
           sudo snap install snapcraft --classic --channel=stable
 
@@ -80,9 +77,9 @@ jobs:
 
       - name: Promote edge to candidate
         run: |
-          REV=$(snapcraft list-revisions ${{ steps.snap-name.outputs.snap_name }} | awk '/edge/{print $1; exit}')
-          echo "Promoting revision $REV of ${{ steps.snap-name.outputs.snap_name }} to candidate"
-          snapcraft release ${{ steps.snap-name.outputs.snap_name }} $REV candidate
+          REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/edge/{print $1; exit}')
+          echo "Promoting revision $REV of ${{ steps.snapcraft-yaml.outputs.snap-name }} to candidate"
+          snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} $REV candidate
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
 
