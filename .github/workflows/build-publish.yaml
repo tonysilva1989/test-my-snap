@@ -53,9 +53,9 @@ jobs:
           release: edge
 
   promote-snap:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs: build-and-publish
+    # needs: build-and-publish
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -84,9 +84,13 @@ jobs:
           REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/${{ steps.set-channel.outputs.from_channel }}/{print $1; exit}')
           echo "revision=$REV" >> $GITHUB_ENV
       - name: Promote snap
-        id: 
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: promote-snap
         run: |
-          snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} ${{ steps.get-revision.outputs.revision }} ${{ steps.set-channel.outputs.to_channel }}
+          if [[ "${{ steps.set-channel.outputs.from_channel }}" != "unknown" ]]; then
+            snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} ${{ steps.get-revision.outputs.revision }} ${{ steps.set-channel.outputs.to_channel }}
+          else
+            echo "Not a promotion event, skipping snap promotion."
+          fi
+
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
