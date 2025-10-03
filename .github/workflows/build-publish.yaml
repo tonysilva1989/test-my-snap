@@ -85,8 +85,7 @@ jobs:
         id: get-revision
         run: | 
           REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/${{ steps.set-channel.outputs.from_channel }}/{print $1; exit}')
-          echo "revision found: $REV"
-          echo "revision=$REV" >> $GITHUB_ENV
+          echo "revision=$REV" >> $GITHUB_OUTPUT
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
       - name: Promote snap
