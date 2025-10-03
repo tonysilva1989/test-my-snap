@@ -1,9 +1,9 @@
 name: Snap Build
 
-#on:
+# on:
 #  push:
 #    branches:
-#      - novos-testes
+#      - teste10
 
 on:
   pull_request: # Triggers the workflow on pull requests targeting the main branch
@@ -12,12 +12,12 @@ on:
     branches:
       - main # Whenever a commit is pushed to main
     tags:
-      - 'v*' # Whenever a new version tag is pushed
+      - 'v*-rc*' # Whenever a new version tag is pushed
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-
+    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
         id: checkout
@@ -52,47 +52,47 @@ jobs:
           snap: ${{ steps.build-snap.outputs.snap }}
           release: edge
 
-  promote-to-candidate:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  promote-snap:
+    if: ${{ github.ref == 'refs/heads/main' || github.ref =~ '^refs/tags/v.*-rc[0-9]+$' }}
     runs-on: ubuntu-latest
-    needs: build-and-publish
+    # needs: build-and-publish
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
-
-      - name: Install Snapcraft CLI
+      - name: Find and parse snapcraft.yaml
+        id: snapcraft-yaml
+        uses: snapcrafters/ci/parse-snapcraft-yaml@main
+      - name: Install Snapcraft
         run: |
-          sudo snap install --channel stable --classic snapcraft
-      - name: Get snap name from snapcraft.yaml
-        id: snap-name
+          sudo snap install snapcraft --classic --channel=stable
+      - name: Determine promotion channel
+        id: set-channel
         run: |
-          NAME=$(grep '^name:' snap/snapcraft.yaml | awk '{print $2}')
-          echo "snap_name=$NAME" >> $GITHUB_OUTPUT
-      - name: Promote edge to candidate
+          if [[ "${{ github.ref }}" =~ ^refs/tags/v.*-rc[0-9]+$ ]]; then
+            echo "from_channel=edge" >> $GITHUB_OUTPUT
+            echo "to_channel=candidate" >> $GITHUB_OUTPUT
+            echo "Promoting to channel: candidate"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "from_channel=candidate" >> $GITHUB_OUTPUT
+            echo "to_channel=stable" >> $GITHUB_OUTPUT
+            echo "Promoting to channel: stable"
+          else
+            echo "from_channel=unknown" >> $GITHUB_OUTPUT
+            echo "to_channel=unknown" >> $GITHUB_OUTPUT
+            echo "Not a promotion event, skipping snap promotion."
+          fi
+      - name: Get snap revision
+        id: get-revision
+        run: | 
+          REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/${{ steps.set-channel.outputs.from_channel }}/{print $1; exit}')
+          echo "revision=$REV" >> $GITHUB_ENV
+      - name: Promote snap
+        id: promote-snap
         run: |
-          REV=$(snapcraft list-revisions ${{ steps.snap-name.outputs.snap_name }} --channel=edge | awk 'NR==2 {print $1}')
-          snapcraft release ${{ steps.snap-name.outputs.snap_name }} $REV candidate
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-
-  release-to-stable:
-    if: startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    needs: build-and-publish
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install Snapcraft CLI
-        run: |
-          sudo snap install --channel stable --classic snapcraft
-      - name: Get snap name from snapcraft.yaml
-        id: snap-name
-        run: |
-          NAME=$(grep '^name:' snap/snapcraft.yaml | awk '{print $2}')
-          echo "snap_name=$NAME" >> $GITHUB_OUTPUT
-      - name: release to stable
-        run: |
-          REV=$(snapcraft list-revisions ${{ steps.snap-name.outputs.snap_name }} --channel=edge | awk 'NR==2 {print $1}')
-          snapcraft release ${{ steps.snap-name.outputs.snap_name }} $REV stable
+          if [[ "${{ steps.set-channel.outputs.from_channel }}" != "unknown" ]]; then
+            snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} ${{ steps.get-revision.outputs.revision }} ${{ steps.set-channel.outputs.to_channel }}
+          else
+            echo "Not a promotion event, skipping snap promotion."
+          fi
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
