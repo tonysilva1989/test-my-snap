@@ -92,7 +92,8 @@ jobs:
       - name: Promote snap
         id: promote-snap
         run: |
-          if [[ "${{ steps.set-channel.outputs.from_channel }}" != "unknown" ]]; then
+          if [[ "${{ steps.set-channel.outputs.from_channel }}" != "unknown" ]]; then\
+            echo "snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} ${{ steps.get-revision.outputs.revision }} ${{ steps.set-channel.outputs.to_channel }}"
             snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} ${{ steps.get-revision.outputs.revision }} ${{ steps.set-channel.outputs.to_channel }}
           else
             echo "Not a promotion event, skipping snap promotion."
