@@ -1,10 +1,5 @@
 name: Snap Build
 
-# on:
-#  push:
-#    branches:
-#      - teste10
-
 on:
   pull_request: # Triggers the workflow on pull requests targeting the main branch
     types: [opened, synchronize, reopened]
@@ -13,6 +8,9 @@ on:
       - main # Whenever a commit is pushed to main
     tags:
       - 'v*-rc*' # Whenever a new version tag is pushed
+
+permissions:
+  contents: write
 
 jobs:
   build-and-publish:
@@ -52,16 +50,50 @@ jobs:
           snap: ${{ steps.build-snap.outputs.snap }}
           release: edge
 
+
   promote-snap:
-    if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '-rc') || github.ref == 'refs/heads/main'
+    if: (startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '-rc') || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
-    # needs: build-and-publish
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Find and parse snapcraft.yaml
         id: snapcraft-yaml
         uses: snapcrafters/ci/parse-snapcraft-yaml@main
+      - name: Find last RC tag
+        id: find-last-rc
+        run: |
+          # Get the latest tag v*-rc*
+          TAG=$(git tag --list 'v*-rc*' --sort=-v:refname | head -n 1)
+          if [ -z "$TAG" ]; then
+            echo "No RC tag found, skipping."
+            exit 0
+          fi
+          STABLE_TAG=$(echo "$TAG" | sed -E 's/-rc[0-9]+$//')
+          echo "rc_tag=$TAG" >> $GITHUB_OUTPUT
+          echo "stable_tag=$STABLE_TAG" >> $GITHUB_OUTPUT
+          echo "Latest RC tag: $TAG | New stable tag: $STABLE_TAG"
+      - name: Create and push stable tag
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.find-last-rc.outputs.stable_tag }}
+          git push origin ${{ steps.find-last-rc.outputs.stable_tag }}
+      - name: Create new GitHub Release after merging PR
+        if: (    github.event_name == 'pull_request' && github.event.action == 'closed')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.find-last-rc.outputs.stable_tag }}
+          name: "Release ${{ steps.find-last-rc.outputs.stable_tag }}"
+          body: |
+            Automatic release promoted from ${{ steps.find-last-rc.outputs.rc_tag }}.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Snapcraft
         run: |
           sudo snap install snapcraft --classic --channel=stable
@@ -69,10 +101,12 @@ jobs:
         id: set-channel
         run: |
           if [[ "${{ github.ref }}" =~ ^refs/tags/v.*-rc[0-9]+$ ]]; then
+            # If it is applying a version tag like v1.0.0-rc1, promote from edge to candidate
             echo "from_channel=edge" >> $GITHUB_OUTPUT
             echo "to_channel=candidate" >> $GITHUB_OUTPUT
             echo "Promoting to channel: candidate"
           elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            # If it is a push to main branch, promote from candidate to stable
             echo "from_channel=candidate" >> $GITHUB_OUTPUT
             echo "to_channel=stable" >> $GITHUB_OUTPUT
             echo "Promoting to channel: stable"
@@ -92,16 +126,17 @@ jobs:
         id: promote-snap
         run: |
           if [[ "${{ steps.set-channel.outputs.from_channel }}" != "unknown" ]]; then
+          # Retry procedure to handle transient timeout errors when trying to push to snap store
             for try in {1..3}; do
-              snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} \
-                ${{ steps.get-revision.outputs.revision }} \
-                ${{ steps.set-channel.outputs.to_channel }} && break
+              snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} ${{ steps.get-revision.outputs.revision }} ${{ steps.set-channel.outputs.to_channel }} && break
               echo "Retrying snap promotion... ($try/3)"
               sleep 10
             done
-            
           else
             echo "Not a promotion event, skipping snap promotion."
           fi
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          # MAX_RETRIES: 3
+          # RETRY_DELAY: 10
+
