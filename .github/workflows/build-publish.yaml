@@ -8,6 +8,9 @@ on:
       - main # Whenever a commit is pushed to main
     tags:
       - 'v*-rc*' # Whenever a new version tag is pushed
+      
+permissions:
+  contents: write
 
 jobs:
   build-and-publish:
@@ -53,9 +56,43 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Find and parse snapcraft.yaml
         id: snapcraft-yaml
         uses: snapcrafters/ci/parse-snapcraft-yaml@main
+      - name: Find last RC tag
+        id: find-last-rc
+        run: |
+          # Get the latest tag v*-rc*
+          TAG=$(git tag --list 'v*-rc*' --sort=-v:refname | head -n 1)
+          if [ -z "$TAG" ]; then
+            echo "No RC tag found, skipping."
+            exit 0
+          fi
+          STABLE_TAG=$(echo "$TAG" | sed -E 's/-rc[0-9]+$//')
+          echo "rc_tag=$TAG" >> $GITHUB_OUTPUT
+          echo "stable_tag=$STABLE_TAG" >> $GITHUB_OUTPUT
+          echo "Latest RC tag: $TAG | New stable tag: $STABLE_TAG"
+      - name: Create and push stable tag
+        if: steps.find-last-rc.outputs.stable_tag != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.find-last-rc.outputs.stable_tag }}
+          git push origin ${{ steps.find-last-rc.outputs.stable_tag }}
+      - name: Create new GitHub Release after merging PR
+        if: steps.find-last-rc.outputs.stable_tag != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.find-last-rc.outputs.stable_tag }}
+          name: "Release ${{ steps.find-last-rc.outputs.stable_tag }}"
+          body: |
+            Automatic release promoted from ${{ steps.find-last-rc.outputs.rc_tag }}.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Snapcraft
         run: |
           sudo snap install snapcraft --classic --channel=stable
@@ -99,4 +136,6 @@ jobs:
           fi
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          # MAX_RETRIES: 3
+          # RETRY_DELAY: 10
 
