@@ -8,7 +8,7 @@ on:
       - main # Whenever a commit is pushed to main
     tags:
       - 'v*-rc*' # Whenever a new version tag is pushed
-      
+
 permissions:
   contents: write
 
@@ -84,7 +84,7 @@ jobs:
           git tag ${{ steps.find-last-rc.outputs.stable_tag }}
           git push origin ${{ steps.find-last-rc.outputs.stable_tag }}
       - name: Create new GitHub Release after merging PR
-        if: steps.find-last-rc.outputs.stable_tag != ''
+        if: (steps.find-last-rc.outputs.stable_tag != '' && github.ref == 'refs/heads/main')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.find-last-rc.outputs.stable_tag }}
