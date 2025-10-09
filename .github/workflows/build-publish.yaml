@@ -14,8 +14,8 @@ permissions:
 
 jobs:
   build-and-publish:
+    if: (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - name: Checkout repository
         id: checkout
@@ -52,7 +52,7 @@ jobs:
 
 
   promote-snap:
-    if: (startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '-rc') || github.ref == 'refs/heads/main')
+    if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '-rc') || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
