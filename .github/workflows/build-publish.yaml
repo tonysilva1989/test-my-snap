@@ -50,6 +50,7 @@ jobs:
           snap: ${{ steps.build-snap.outputs.snap }}
           release: edge
 
+
   promote-snap:
     if: (startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '-rc') || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
@@ -75,7 +76,7 @@ jobs:
           echo "stable_tag=$STABLE_TAG" >> $GITHUB_OUTPUT
           echo "Latest RC tag: $TAG | New stable tag: $STABLE_TAG"
       - name: Create and push stable tag
-        if: steps.find-last-rc.outputs.stable_tag != ''
+        if: github.event_name == 'pull_request' && github.event.action == 'closed'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -84,7 +85,7 @@ jobs:
           git tag ${{ steps.find-last-rc.outputs.stable_tag }}
           git push origin ${{ steps.find-last-rc.outputs.stable_tag }}
       - name: Create new GitHub Release after merging PR
-        if: (steps.find-last-rc.outputs.stable_tag != '' && github.ref == 'refs/heads/main')
+        if: (    github.event_name == 'pull_request' && github.event.action == 'closed')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.find-last-rc.outputs.stable_tag }}
