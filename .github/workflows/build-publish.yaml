@@ -14,8 +14,8 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
-  
+  # pull-requests: write
+
 jobs:
   build-and-publish:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
@@ -128,5 +128,15 @@ jobs:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
       - name: delete branch
         uses: SvanBoxel/delete-merged-branch@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Delete merged branch manually
+        # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          BRANCH=$(gh pr list --state merged --base main --limit 1 --json headRefName -q '.[0].headRefName')
+          if [ -n "$BRANCH" ]; then
+            echo "Deleting branch: $BRANCH"
+            git push origin --delete "$BRANCH" || true
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
