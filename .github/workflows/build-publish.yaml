@@ -2,7 +2,7 @@ name: Snap Build
 
 on:
   pull_request: # Triggers the workflow on pull requests targeting the main branch
-    types: [opened, synchronize, closed]
+    types: [opened, synchronize, reopened, closed]
   push:
     branches:
       - main # Whenever a commit is pushed to main
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   build-and-publish:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
