@@ -126,15 +126,10 @@ jobs:
           snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel candidate --to-channel stable --yes
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-      - name: delete branch
-        uses: SvanBoxel/delete-merged-branch@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Delete merged branch
-        # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          # BRANCH=$(gh pr list --state merged --base main --limit 1 --json headRefName -q '.[0].headRefName')
-          BRANCH="${{ github.event.pull_request.head.ref }}"
+          # Recovering the branch name from merged PR
+          BRANCH=$(gh pr list --state merged --base main --limit 1 --json headRefName -q '.[0].headRefName')          
           if [ -n "$BRANCH" ]; then
             echo "Deleting branch: $BRANCH"
             git push origin --delete "$BRANCH" || true
@@ -143,4 +138,3 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
