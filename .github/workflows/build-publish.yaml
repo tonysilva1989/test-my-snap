@@ -37,13 +37,17 @@ jobs:
           newgrp lxd <<EOB
             snapcraft
           EOB
-          SNAP_FILE=$(ls ./*.snap | head -n 1)
+          SNAP_FILE=$(ls *.snap | head -n 1)
           echo "snap=$SNAP_FILE" >> $GITHUB_OUTPUT
+        env:
+           SNAPCRAFT_BUILD_INFO: 1
+           SNAPCRAFT_VERBOSITY_LEVEL: "verbose"
+           SNAPCRAFT_UA_TOKEN: ${{ secrets.SNAPCRAFT_UA_TOKEN }}
       - name: Upload snap artifact locally
         id: upload-snap
         uses: actions/upload-artifact@v4
         with:
-          name: esc-komatsu-ptxd-snap
+          name: ${{ steps.build-snap.outputs.snap }}
           path: ${{ steps.build-snap.outputs.snap }}
       - name: Publish to Snap Store (edge)
         uses: snapcore/action-publish@v1
@@ -72,6 +76,8 @@ jobs:
           yes | snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel edge --to-channel candidate
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+          SNAPCRAFT_HAS_TTY: "true"
+
 
   promote-stable:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -119,4 +125,7 @@ jobs:
           snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel candidate --to-channel stable --yes
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
-
+      - name: delete branch
+        uses: SvanBoxel/delete-merged-branch@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
