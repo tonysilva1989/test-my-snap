@@ -2,12 +2,13 @@ name: Snap Build
 
 on:
   pull_request: # Triggers the workflow on pull requests targeting the main branch
+                # It ensures builds will happen for every PR.
     types: [opened, synchronize, reopened]
     branches:
-      - main # Whenever a commit is pushed to main
+      - main 
   push:
     branches:
-      - main
+      - main # Whenever a commit is pushed to main
     tags:
       - 'v*-rc*' # Whenever a new version tag is pushed
 
@@ -67,8 +68,8 @@ jobs:
         run: sudo snap install snapcraft --classic --channel=stable
       - name: Promote snap from edge -> candidate
         run: |
-          REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/edge/{print $1; exit}')
-          snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} $REV candidate
+          #REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/edge/{print $1; exit}')
+          snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel edge --to-channel candidate
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
 
@@ -114,8 +115,8 @@ jobs:
         run: sudo snap install snapcraft --classic --channel=stable
       - name: Promote snap from candidate -> stable
         run: |
-          REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/candidate/{print $1; exit}')
-          snapcraft release ${{ steps.snapcraft-yaml.outputs.snap-name }} $REV stable
+          # REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/candidate/{print $1; exit}')
+          snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel candidate --to-channel stable
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
 
