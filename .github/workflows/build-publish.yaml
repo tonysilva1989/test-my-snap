@@ -14,7 +14,6 @@ on:
 
 permissions:
   contents: write
-  # pull-requests: write
 
 jobs:
   build-and-publish:
@@ -38,7 +37,7 @@ jobs:
           newgrp lxd <<EOB
             snapcraft
           EOB
-          SNAP_FILE=$(ls *.snap | head -n 1)
+          SNAP_FILE=$(ls ./*.snap | head -n 1)
           echo "snap=$SNAP_FILE" >> $GITHUB_OUTPUT
         env:
            SNAPCRAFT_BUILD_INFO: 1
@@ -128,15 +127,5 @@ jobs:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
       - name: delete branch
         uses: SvanBoxel/delete-merged-branch@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Delete merged branch manually
-        # if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          BRANCH=$(gh pr list --state merged --base main --limit 1 --json headRefName -q '.[0].headRefName')
-          if [ -n "$BRANCH" ]; then
-            echo "Deleting branch: $BRANCH"
-            git push origin --delete "$BRANCH" || true
-          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
