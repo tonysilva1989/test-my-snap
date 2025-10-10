@@ -69,7 +69,7 @@ jobs:
       - name: Promote snap from edge -> candidate
         run: |
           #REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/edge/{print $1; exit}')
-          snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel edge --to-channel candidate
+          yes | snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel edge --to-channel candidate
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
 
@@ -116,7 +116,7 @@ jobs:
       - name: Promote snap from candidate -> stable
         run: |
           # REV=$(snapcraft list-revisions ${{ steps.snapcraft-yaml.outputs.snap-name }} | awk '/candidate/{print $1; exit}')
-          snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel candidate --to-channel stable
+          snapcraft promote ${{ steps.snapcraft-yaml.outputs.snap-name }} --from-channel candidate --to-channel stable --yes
         env:
           SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
 
