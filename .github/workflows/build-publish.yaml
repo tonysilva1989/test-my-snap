@@ -27,12 +27,15 @@ jobs:
       - name: Build snap
         id: build-snap
         uses: snapcore/action-build@v1
-        with:
-          ua-token: ${{ secrets.SNAPCRAFT_UA_TOKEN }}
+        # with:
+        #   ua-token: ${{ secrets.SNAPCRAFT_UA_TOKEN }}
         env:
            SNAPCRAFT_BUILD_INFO: 1
            SNAPCRAFT_VERBOSITY_LEVEL: "verbose"
-
+           # This action has a bug in which the UA token is not properly passed to the snapcraft command using the standard `ua-token` input.
+           # This option is described here: https://github.com/canonical/action-build#ua-token
+           # As a workaround, we currently set the SNAPCRAFT_UA_TOKEN environment variable directly.
+           # Refer to the open issue: https://github.com/canonical/action-build/issues/83
            SNAPCRAFT_UA_TOKEN: ${{ secrets.SNAPCRAFT_UA_TOKEN }}
       - name: Upload snap artifact locally
         id: upload-snap
