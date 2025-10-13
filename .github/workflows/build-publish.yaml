@@ -32,7 +32,8 @@ jobs:
         env:
            SNAPCRAFT_BUILD_INFO: 1
            SNAPCRAFT_VERBOSITY_LEVEL: "verbose"
-          #  SNAPCRAFT_UA_TOKEN: ${{ secrets.SNAPCRAFT_UA_TOKEN }}
+
+           SNAPCRAFT_UA_TOKEN: ${{ secrets.SNAPCRAFT_UA_TOKEN }}
       - name: Upload snap artifact locally
         id: upload-snap
         uses: actions/upload-artifact@v4
