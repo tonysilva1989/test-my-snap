@@ -1,6 +1,7 @@
 name: Snap Build
 
 on:
+  workflow_call: 
   pull_request: # Triggers the workflow on pull requests targeting the main branch
                 # It ensures builds will happen for every PR.
     types: [opened, synchronize, reopened]
@@ -24,25 +25,16 @@ jobs:
       - name: Checkout repository
         id: checkout
         uses: actions/checkout@v4
-      - name: Install Snapcraft and setup LXD
-        id: prepare-env
-        run: |
-          sudo iptables -P FORWARD ACCEPT
-          sudo snap install --channel stable --classic snapcraft
-          sudo snap install lxd
-          sudo lxd init --auto
-          sudo usermod -aG lxd $USER
-      - name: Build snap and prepare the artifact for upload
+      - name: Build snap
         id: build-snap
-        run: |
-          newgrp lxd <<EOB
-            snapcraft
-          EOB
-          SNAP_FILE=$(ls *.snap | head -n 1)
-          echo "snap=$SNAP_FILE" >> $GITHUB_OUTPUT
+        uses: snapcore/action-build@v1
         env:
            SNAPCRAFT_BUILD_INFO: 1
            SNAPCRAFT_VERBOSITY_LEVEL: "verbose"
+           # This action has a bug in which the UA token is not properly passed to the snapcraft command using the standard `ua-token` input.
+           # This option is described here: https://github.com/canonical/action-build#ua-token
+           # As a workaround, we currently set the SNAPCRAFT_UA_TOKEN environment variable directly.
+           # Refer to the open issue: https://github.com/canonical/action-build/issues/83
            SNAPCRAFT_UA_TOKEN: ${{ secrets.SNAPCRAFT_UA_TOKEN }}
       - name: Upload snap artifact locally
         id: upload-snap
@@ -57,6 +49,12 @@ jobs:
         with:
           snap: ${{ steps.build-snap.outputs.snap }}
           release: edge
+      - name: Upload Snapcraft logs as an artifact
+        id: upload-log
+        uses: actions/upload-artifact@v4
+        with:
+          name: snapcraft-log
+          path: /home/runner/.local/state/snapcraft/log/
 
   promote-rc:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '-rc')
